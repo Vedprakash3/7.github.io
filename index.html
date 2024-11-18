@@ -1,0 +1,65 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>PDF Text Extractor</title>
+</head>
+<body>
+  <h2>Upload a PDF File to Extract Text</h2>
+  
+  <!-- Input for selecting PDF file -->
+  <input type="file" id="fileInput" />
+  <br><br>
+  
+  <!-- Textarea to display extracted text -->
+  <textarea id="output" rows="20" cols="100"></textarea>
+
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/pdf.js/2.10.377/pdf.min.js"></script>
+  <script>
+    // Event listener for file selection
+    document.getElementById('fileInput').addEventListener('change', handleFileSelect, false);
+
+    function handleFileSelect(event) {
+      // Get the selected file
+      var file = event.target.files[0];
+      var reader = new FileReader();
+
+      reader.onload = function(e) {
+        // Create a typed array from the file's data
+        var typedarray = new Uint8Array(e.target.result);
+        
+        // Load the PDF with PDF.js
+        pdfjsLib.getDocument(typedarray).promise.then(function(pdf) {
+          var totalPages = pdf.numPages;  // Get the total number of pages
+          var textContent = '';  // Variable to accumulate the text
+
+          // Loop through each page in the PDF
+          var pagesPromises = [];
+          for (let i = 1; i <= totalPages; i++) {
+            pagesPromises.push(
+              pdf.getPage(i).then(function(page) {
+                return page.getTextContent().then(function(text) {
+                  // Extract text from each page
+                  text.items.forEach(function(item) {
+                    textContent += item.str + ' ';  // Accumulate page text
+                  });
+                });
+              })
+            );
+          }
+
+          // After all pages have been processed, display the extracted text
+          Promise.all(pagesPromises).then(function() {
+            document.getElementById('output').value = textContent;  // Show the text in the textarea
+          });
+        }).catch(function(error) {
+          console.error('Error while loading PDF:', error);
+        });
+      };
+
+      reader.readAsArrayBuffer(file);  // Read the file as an ArrayBuffer
+    }
+  </script>
+</body>
+</html>
